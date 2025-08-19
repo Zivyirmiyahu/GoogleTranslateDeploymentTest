@@ -1,11 +1,11 @@
 import streamlit as st
-from googletrans import Translator, LANGUAGES
+from translatepy import Translator
 import time
 import hashlib
 
 # Page configuration
 st.set_page_config(
-    page_title="Google Translate",
+    page_title="Secure Translator",
     page_icon="🌐",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -42,6 +42,22 @@ st.markdown("""
         border-left: 5px solid #2E86AB;
         margin: 10px 0;
     }
+    .success-message {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #c3e6cb;
+        margin: 10px 0;
+    }
+    .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #f5c6cb;
+        margin: 10px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,7 +73,7 @@ def check_credentials(username: str, password: str) -> bool:
 
 def login_form():
     """Display login form"""
-    st.markdown('<h1 class="main-header">🔐 Login Required</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🔐 Secure Translator Login</h1>', unsafe_allow_html=True)
     
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -87,12 +103,13 @@ def login_form():
         
         # Demo credentials info (remove in production!)
         st.markdown("---")
-        st.markdown("**Demo Credentials (remove this section in production!):**")
+        st.markdown("**Demo Credentials:**")
         st.code("""
 Username: admin    | Password: password
 Username: user1    | Password: secret123  
 Username: team     | Password: hello
         """)
+        st.markdown("**(Remove this section in production!)**")
 
 def logout_button():
     """Display logout button in sidebar"""
@@ -122,60 +139,124 @@ if not st.session_state.authenticated:
 # Add logout button to sidebar
 logout_button()
 
+# Language options
+LANGUAGES = {
+    'auto': 'Auto Detect',
+    'en': 'English',
+    'es': 'Spanish', 
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'zh': 'Chinese',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'nl': 'Dutch',
+    'sv': 'Swedish',
+    'da': 'Danish',
+    'no': 'Norwegian',
+    'fi': 'Finnish',
+    'pl': 'Polish',
+    'cs': 'Czech',
+    'sk': 'Slovak',
+    'hu': 'Hungarian',
+    'tr': 'Turkish',
+    'uk': 'Ukrainian',
+    'he': 'Hebrew',
+    'th': 'Thai',
+    'vi': 'Vietnamese',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'fa': 'Persian',
+    'ur': 'Urdu',
+    'bn': 'Bengali',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'kn': 'Kannada',
+    'ml': 'Malayalam',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'my': 'Myanmar',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'ka': 'Georgian',
+    'am': 'Amharic',
+    'sw': 'Swahili',
+    'zu': 'Zulu',
+    'af': 'Afrikaans',
+    'is': 'Icelandic',
+    'mt': 'Maltese',
+    'cy': 'Welsh',
+    'ga': 'Irish',
+    'eu': 'Basque',
+    'ca': 'Catalan',
+    'gl': 'Galician',
+    'eo': 'Esperanto'
+}
+
 def translate_text(text: str, src_lang: str, dest_lang: str) -> tuple:
-    """Translate text using Google Translate"""
+    """Translate text using translatepy"""
     try:
         translator = st.session_state.translator
-        result = translator.translate(text, src=src_lang, dest=dest_lang)
-        return result.text, result.src
+        
+        if src_lang == 'auto':
+            # Auto-detect source language
+            result = translator.translate(text, dest_lang)
+            detected = translator.language(text)
+            return result.result, detected.result
+        else:
+            result = translator.translate(text, dest_lang, src_lang)
+            return result.result, src_lang
+            
     except Exception as e:
         st.error(f"Translation error: {str(e)}")
         return "", ""
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🌐 Google Translate</h1>', unsafe_allow_html=True)
-    st.markdown("**Powered by Google Translate API - Protected Access**")
+    st.markdown('<h1 class="main-header">🌐 Secure Translator</h1>', unsafe_allow_html=True)
+    st.markdown("**Multi-language translation with secure access control**")
     
     # Language selection
     st.subheader("🔤 Select Languages")
-    
-    # Get language options
-    lang_options = list(LANGUAGES.items())
-    lang_dict = dict(LANGUAGES)
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("**From Language:**")
-        source_langs = [('auto', 'Auto-detect')] + [(code, name.title()) for code, name in lang_options]
-        source_options = [f"{name} ({code})" for code, name in source_langs]
+        source_options = list(LANGUAGES.keys())
+        source_labels = [f"{LANGUAGES[code]} ({code})" for code in source_options]
         
         selected_src_idx = st.selectbox(
             "Source language:",
             range(len(source_options)),
-            format_func=lambda x: source_options[x],
+            format_func=lambda x: source_labels[x],
             key="src_lang",
             index=0  # Default to auto-detect
         )
-        selected_src_code = source_langs[selected_src_idx][0]
+        selected_src_code = source_options[selected_src_idx]
     
     with col2:
         st.markdown("**To Language:**")
-        target_langs = [(code, name.title()) for code, name in lang_options]
-        target_options = [f"{name} ({code})" for code, name in target_langs]
+        target_options = [code for code in LANGUAGES.keys() if code != 'auto']
+        target_labels = [f"{LANGUAGES[code]} ({code})" for code in target_options]
         
         # Default to English
-        default_target = next((i for i, (code, name) in enumerate(target_langs) if code == 'en'), 0)
+        default_target = target_options.index('en') if 'en' in target_options else 0
         
         selected_dest_idx = st.selectbox(
             "Target language:",
             range(len(target_options)),
-            format_func=lambda x: target_options[x],
+            format_func=lambda x: target_labels[x],
             key="dest_lang",
             index=default_target
         )
-        selected_dest_code = target_langs[selected_dest_idx][0]
+        selected_dest_code = target_options[selected_dest_idx]
     
     # Translation interface
     st.subheader("✍️ Translation")
@@ -212,36 +293,49 @@ def main():
                 
                 # Show detected language if auto-detect was used
                 if selected_src_code == 'auto' and detected_lang:
-                    detected_name = lang_dict.get(detected_lang, detected_lang).title()
+                    detected_name = LANGUAGES.get(detected_lang, detected_lang)
                     st.info(f"🔍 Detected language: **{detected_name}** ({detected_lang})")
                 
-                st.markdown(f'<div class="translation-box"><h4>🎯 {target_langs[selected_dest_idx][1]}:</h4><p style="font-size: 1.1em; line-height: 1.5;">{translated_text}</p></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="translation-box"><h4>🎯 {LANGUAGES[selected_dest_code]}:</h4><p style="font-size: 1.1em; line-height: 1.5;">{translated_text}</p></div>', unsafe_allow_html=True)
                 
                 # Add to history
+                from_lang_name = LANGUAGES.get(detected_lang, detected_lang) if selected_src_code == 'auto' else LANGUAGES[selected_src_code]
                 translation_record = {
                     'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                    'from_lang': detected_name if selected_src_code == 'auto' else source_langs[selected_src_idx][1],
-                    'to_lang': target_langs[selected_dest_idx][1],
+                    'from_lang': from_lang_name,
+                    'to_lang': LANGUAGES[selected_dest_code],
                     'original': input_text,
-                    'translated': translated_text
+                    'translated': translated_text,
+                    'user': st.session_state.username
                 }
                 st.session_state.translation_history.insert(0, translation_record)
                 
-                # Keep only last 10 translations
-                st.session_state.translation_history = st.session_state.translation_history[:10]
+                # Keep only last 20 translations
+                st.session_state.translation_history = st.session_state.translation_history[:20]
                 
                 # Copy button
                 st.code(translated_text, language=None)
+                
+                # Success message
+                st.markdown('<div class="success-message">✅ Translation completed successfully!</div>', unsafe_allow_html=True)
     
     elif translate_button and not input_text.strip():
-        st.error("Please enter some text to translate.")
+        st.markdown('<div class="error-message">❌ Please enter some text to translate.</div>', unsafe_allow_html=True)
     
     # Translation history
     if st.session_state.translation_history:
         st.subheader("📚 Recent Translations")
         
-        for i, record in enumerate(st.session_state.translation_history[:5]):
+        # Filter by current user or show all for admin
+        user_history = st.session_state.translation_history
+        if st.session_state.username != 'admin':
+            user_history = [record for record in st.session_state.translation_history 
+                          if record.get('user') == st.session_state.username]
+        
+        for i, record in enumerate(user_history[:5]):
             with st.expander(f"{record['from_lang']} → {record['to_lang']} ({record['timestamp']})"):
+                if st.session_state.username == 'admin':
+                    st.markdown(f"**User:** {record.get('user', 'Unknown')}")
                 st.markdown(f"**Original ({record['from_lang']}):**")
                 st.write(record['original'])
                 st.markdown(f"**Translation ({record['to_lang']}):**")
@@ -250,11 +344,12 @@ def main():
     # Sidebar info
     with st.sidebar:
         st.header("ℹ️ About")
-        st.markdown("**Google Translate Integration**")
-        st.markdown("- 100+ languages supported")
+        st.markdown("**Secure Translation Service**")
+        st.markdown("- 50+ languages supported")
         st.markdown("- Auto-language detection")
         st.markdown("- Real-time translation")
         st.markdown("- Translation history")
+        st.markdown("- User access control")
         
         st.markdown("---")
         st.markdown("**Usage:**")
@@ -262,10 +357,16 @@ def main():
         st.markdown("2. Enter your text")
         st.markdown("3. Click Translate")
         st.markdown("4. Copy the result")
+        
+        st.markdown("---")
+        st.markdown("**Security Features:**")
+        st.markdown("- Password protected access")
+        st.markdown("- User session tracking")
+        st.markdown("- Secure authentication")
     
     # Footer
     st.markdown("---")
-    st.markdown("**Powered by Google Translate API**")
+    st.markdown("**Powered by TranslatePy | Secure Access Control**")
 
 if __name__ == "__main__":
     main()
